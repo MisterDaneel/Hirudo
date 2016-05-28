@@ -24,6 +24,7 @@
 from threading import Thread, activeCount
 from tkFont import Font
 from Tkinter import *
+import tkSimpleDialog
 import tkFileDialog
 import ttk
 import libtorrent as lt
@@ -37,8 +38,8 @@ MAX_THREADS          = 5
 undesirableTracker   = ''
 newTracker           = ''
 initialDir           = '~/Downloads'
-UploadLimit          = 100000
-DownloadLimit        = 9000000
+uploadLimit          = 9000000
+downloadLimit        = 9000000
 state_str            = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking fastresume']
 #
 # TORRENT THREAD
@@ -49,7 +50,6 @@ class TORRENTTHREAD(Thread):
         super(TORRENTTHREAD, self).__init__()
         self.EditGui = EditGui
         self.item = item
-        #file = file.decode(sys.getfilesystemencoding())
         print 'New Torrent =', file
         print 'Folder =', folder
         self.info = lt.torrent_info(os.path.join(folder, file))
@@ -63,23 +63,24 @@ class TORRENTTHREAD(Thread):
         ses.listen_on(6881, 6891)
         self.torrentHandle = ses.add_torrent({'ti': self.info, 'save_path': self.folder})
         self.torrentHandle.set_download_limit(1)
-        self.torrentHandle.set_upload_limit(UploadLimit)
+        self.torrentHandle.set_upload_limit(uploadLimit)
         # New Torrent
         torrentName = self.torrentHandle.name()
         self.EditGui(self.item, 'INITIALISATION')
-        # Peering
-        print self.torrentHandle.name() + ' Peering'
-        if((self.torrentHandle.status().num_peers < 1) and not self.torrentHandle.is_seed()):
-            self.Peering()
-        if self.toStop:
-            return
         # New Tracker
         newTrackers = []
         for tr in self.torrentHandle.trackers():
-            for undesirableTracker in tr['url']:
+            if undesirableTracker in tr['url']:
                 tr['url'] = newTracker
             newTrackers.append(tr)
-        self.torrentHandle.replace_trackers(newTrackers)
+        # Peering
+        print self.torrentHandle.name() + ' Peering'
+        if((self.torrentHandle.status().num_peers < 1) and not self.torrentHandle.is_seed() and len(newTrackers)>0):
+            self.Peering()
+        if self.toStop:
+            return
+        if len(newTrackers)>0:
+            self.torrentHandle.replace_trackers(newTrackers)
         for tracker in self.torrentHandle.trackers():
             print '\rTracker: ', tracker['url']
         # Downloading
@@ -94,18 +95,18 @@ class TORRENTTHREAD(Thread):
     # Peering
     #
     def Peering(self):
-        torrentStatus = self.torrentHandle.status()
-        while (not self.toStop and (torrentStatus.num_peers < 1) and not self.torrentHandle.is_seed()):
+        torrentStatus = self.torrentHandle.status() 
+        while (not self.toStop and (torrentStatus.num_peers < 1) and not self.torrentHandle.is_seed()): 
             if (torrentStatus.state == 1):
                 infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
                 self.EditGui(self.item, infosSTR)
-            sleep(.1)
+            sleep(.5)
             torrentStatus = self.torrentHandle.status()
     #
     # Downloading
     #
     def Downloading(self):
-        self.torrentHandle.set_download_limit(DownloadLimit)
+        self.torrentHandle.set_download_limit(downloadLimit)
         torrentStatus = self.torrentHandle.status()
         while (not self.toStop and not self.torrentHandle.is_seed()):
             if (torrentStatus.state == 1):
@@ -148,6 +149,9 @@ class TKTORRENTGUI(ttk.Frame):
         menu.add_cascade(label='File', menu=addBar)
         addBar.add_command(label='Add File', command=self.AddFile)
         addBar.add_command(label='Add Folder', command=self.AddFolder)
+        addBar.add_command(label='Number Of Active Torrents', command=self.NumberOfActiveTorrents)
+        addBar.add_command(label='Download Limit', command=self.DownloadLimit)
+        addBar.add_command(label='Upload Limit', command=self.UploadLimit)
         addBar.add_command(label='Exit', command=self.Exit)
         # Torrent bar
         torrentBar = Menu(menu)
@@ -263,6 +267,45 @@ class TKTORRENTGUI(ttk.Frame):
         file = os.path.basename(file)
         if file.endswith('.torrent') and file not in self.torrentFolderList:
             self.LoadFile(file, folder)
+    #
+    # NumberOfActiveTorrents
+    #
+    def NumberOfActiveTorrents(self):
+        global MAX_THREADS
+        options = {}
+        options['title'] = 'Number Of Active Torrents'
+        options['prompt'] = 'Number Of Active Torrents'
+        options['initialvalue'] = MAX_THREADS
+        options['parent'] = self
+        options['minvalue'] = 0
+        options['maxvalue'] = 50
+        MAX_THREADS = tkSimpleDialog.askinteger(**options)
+    #
+    # UploadLimit
+    #
+    def UploadLimit(self):
+        global uploadLimit
+        options = {}
+        options['title'] = 'Upload Limit'
+        options['prompt'] = 'Upload Limit'
+        options['initialvalue'] = uploadLimit
+        options['parent'] = self
+        options['minvalue'] = 0
+        options['maxvalue'] = 100000000000
+        uploadLimit = tkSimpleDialog.askinteger(**options)
+    #
+    # DownloadLimit
+    #
+    def DownloadLimit(self):
+        global downloadLimit
+        options = {}
+        options['title'] = 'Download Limit'
+        options['prompt'] = 'Download Limit'
+        options['initialvalue'] = downloadLimit
+        options['parent'] = self
+        options['minvalue'] = 0
+        options['maxvalue'] = 100000000000
+        downloadLimit = tkSimpleDialog.askinteger(**options)
     #
     # Exit
     #
