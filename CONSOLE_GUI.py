@@ -27,7 +27,7 @@ def download_torrent(torrent_file):
     thread = trnt.TORRENTTHREAD(torrent_file)
     thread.SetOutput(configuration["output_folder"])
     if 'leech_passkey' in configuration:
-        thread.SetPasskey('T411', configuration['leech_passkey'])
+        thread.SetPasskey(configuration['user_passkey'], configuration['leech_passkey'])
     active_torrents[thread.GetTorrentName()]= thread
     thread.start()
 
@@ -64,12 +64,15 @@ def search_response(api, response):
         except:
             None
     # Choose a result
-    result = input('$ ')
-    if result == 0:
-        return
-    elif result <= len(torrents):
-        torrent_file = api.download(int(torrents[result-1]['id']))
-        download_torrent(torrent_file)
+    try:
+        result = input('$ ')
+        if result == 0:
+            return
+        elif result <= len(torrents):
+            torrent_file = api.download(int(torrents[result-1]['id']))
+            download_torrent(torrent_file)
+    except:
+        None
 
 def search_resquest(api):
     result = create_menu("RECHERCHE",
@@ -78,7 +81,7 @@ def search_resquest(api):
         'Recherche Serie Anime'])
     torrent_name = raw_input('Mots cles: ') 
 
-    if result == 0:
+    if result == 0 or torrent_name == '':
         return 0
 
     if torrent_name and result > 1:
@@ -86,7 +89,6 @@ def search_resquest(api):
             'offset': 0,
             'limit': 5,
         }
-        print 'tname:', torrent_name
         try:
             season = -1
             while (season < 1) or (season > 100):
@@ -166,8 +168,10 @@ def main_menu():
             if response == 0:
                 break
             else:
-                print 'response'
-                search_response(api, response)
+                if len(response) == 0:
+                    print 'Pas de resultats.'
+                else:
+                    search_response(api, response)
                 break
     return
 
