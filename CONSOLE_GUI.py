@@ -35,17 +35,17 @@ def create_menu(title, items):
     title = 10*"*" + title + 10*"*"
     heading = len(title)*"*"
     
-    print '%s\n%s\n%s'%(heading, title, heading)
-    print '[ 0 ] Exit'
-    for num, item in enumerate(items):
-        print '[ %d ] %s'%(num+1,item)
-    try:
-        result = input('$ ')
-        if result < len(items)+1:
-            return result
-    except:
-        None
-    return -1
+    while True:
+        print '%s\n%s\n%s'%(heading, title, heading)
+        print '[ 0 ] Exit'
+        for num, item in enumerate(items):
+            print '[ %d ] %s'%(num+1,item)
+        try:
+            result = input('$ ')
+            if result < len(items)+1:
+                return result
+        except:
+            continue
 
 def search_response(api, response):
     torrents=[]
@@ -79,9 +79,13 @@ def search_resquest(api):
         ['Recherche par mots cles',
         'Recherche Serie TV',
         'Recherche Serie Anime'])
+
+    if result == 0:
+        return 0
+
     torrent_name = raw_input('Mots cles: ') 
 
-    if result == 0 or torrent_name == '':
+    if  torrent_name == '':
         return 0
 
     if torrent_name and result > 1:

@@ -6,7 +6,7 @@ import os
 
 sys.dont_write_bytecode = True
 
-API_URL = 'http://api.t411.li'
+API_URL = 'http://api.t411.ai'
 SEARCH_URL = '/torrents/search/'
 
 def sanitize(value):
@@ -90,14 +90,18 @@ class T411API:
         :param params: http request parameters
         :return: Response object
         """
+
         if not self.token:
             raise ConnectError('You must be logged in to use T411 API')
 
         if not params:
             params = {}
 
-        r = requests.get(API_URL + path, params,
-                         headers={'Authorization': self.token})
+        url = API_URL + path
+
+        headers={'Authorization': self.token}
+
+        r = requests.get(url, params=params, headers=headers)
 
         if r.status_code != 200:
             raise ServiceError('Unexpected HTTP code %d upon connection'
