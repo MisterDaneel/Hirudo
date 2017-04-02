@@ -174,6 +174,8 @@ def main_menu():
             else:
                 if len(response) == 0:
                     print 'Pas de resultats.'
+                elif isinstance(response['torrents'][0], int):
+                    print 'Pas de resultats.'
                 else:
                     search_response(api, response)
                 break
