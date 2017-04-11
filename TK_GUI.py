@@ -242,7 +242,6 @@ class TKTORRENTGUI(ttk.Frame):
         frame = Frame(self)
         frame.pack()
         listResults = Listbox(frame)
-        #print torrents
         # Print results
         for i, t in enumerate(torrents):
             listResults.insert(i, '%s (seeders: %s, size: %dmo, id: %s)'\
@@ -297,7 +296,7 @@ class TKTORRENTGUI(ttk.Frame):
     # Start
     #
     def Start(self, item):
-        name = self.table.item(item)['text']
+        name = self.table.item(item)['text'].encode('utf8')
         if not name:
             return
         if activeCount() > MAX_THREADS:

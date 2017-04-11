@@ -24,6 +24,7 @@ except ImportError:
 active_torrents = {}
 
 def download_torrent(torrent_file):
+    torrent_file = torrent_file.decode('utf8')
     thread = trnt.TORRENTTHREAD(torrent_file)
     thread.SetOutput(configuration["output_folder"])
     if 'leech_passkey' in configuration:
@@ -163,8 +164,8 @@ def main_menu():
                 print 'Trying to connect to T411...'
                 api = tapi.T411API()
                 api.connect(configuration["loginT411"], configuration["passwordT411"])
-            except:
-                print 'Failed to connect to T411'
+            except Exception as e:
+                print 'Failed to connect to T411: %s'%e
                 break
             print 'Succeded to connect to T411'
 
