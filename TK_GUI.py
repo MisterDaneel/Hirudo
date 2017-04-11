@@ -176,6 +176,7 @@ class TKTORRENTGUI(ttk.Frame):
         options = {}
         options['initialdir'] = initialDir
         options['parent'] = self
+        options['filetypes'] = [('Torrent file', '*.torrent')]
         file = tkFileDialog.askopenfilename(**options)
         folder = os.path.dirname(file)
         file = os.path.basename(file)
@@ -351,8 +352,26 @@ class TKTORRENTGUI(ttk.Frame):
                 os.remove(self.torrentThreadList[name].torrentFile)
                 self.torrentThreadList.pop(name, None)
             self.table.delete(item)
+# Hide hidden elements
+def hideHidden():
+    root = Tk()
+    try:
+    # call a dummy dialog with an impossible option to initialize the file
+    # dialog without really getting a dialog window; this will throw a
+    # TclError, so we need a try...except :
+        try:
+            root.tk.call('tk_getOpenFile', '-foobarbaz')
+        except TclError:
+            pass
+        # now set the magic variables accordingly
+        root.tk.call('set', '::tk::dialog::file::showHiddenBtn', '1')
+        root.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
+    except:
+        pass
+
 #
 # MAIN
 #
 if __name__ == '__main__':
+    hideHidden()
     TKTORRENTGUI().mainloop()

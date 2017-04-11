@@ -10,9 +10,13 @@ class Completer(object):
     def _listdir(self, root):
         res = []
         for name in os.listdir(root):
+            if name[:1] == '.':
+                continue
             path = os.path.join(root, name)
             if os.path.isdir(path):
                 name += os.sep
+            elif not name.endswith('.torrent'):
+                continue
             res.append(name)
         return res
 
