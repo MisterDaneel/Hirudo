@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 
-from time import sleep
+from time import sleep, time
 import sys
 import os
 
@@ -42,6 +42,7 @@ class TORRENTTHREAD(Thread):
     # param: message: string
     #
     def Print(self, message):
+        #print message
         if self.EditGui:
             self.EditGui(self.ItemGui, message)
         if self.PrintStatus:
@@ -122,23 +123,18 @@ class TORRENTTHREAD(Thread):
         # New Torrent
         torrentName = self.torrentHandle.name()
         self.Print('INITIALISATION')
-
         # Replace Tracker   
         if self.replacePasskey:
             self.trHack()
-     
         # Stop if needed
         if self.toStop:
             return
-
         # Downloading
         if(not self.torrentHandle.is_seed()):
             self.Downloading()
-
         # Stop if needed
         if self.toStop:
             return
-
         # Complete
         self.Print('COMPLETED')
         os.remove(self.torrentFile)
@@ -157,17 +153,27 @@ class TORRENTTHREAD(Thread):
             if (self.torrentHandle.status().num_peers < 1) and not self.torrentHandle.is_seed():
                 self.Peering()
             self.torrentHandle.replace_trackers(newTorrentTrackers)
-
     #
     # Get peers list
     #
     def Peering(self):
         torrentStatus = self.torrentHandle.status()
+        start = time()
         while (not self.toStop and (torrentStatus.num_peers < 1) and not self.torrentHandle.is_seed()): 
             if (torrentStatus.state == 1):
-                infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
+                infosSTR = 'Finding peers... %.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
+                self.Print(infosSTR)
+            else:
+                infosSTR = '%.2f%% (down: %.1f kb/s up: %.1f kB/s peers: %d / %d)) finding peers'\
+                        % (torrentStatus.progress * 100, torrentStatus.download_rate / 1000,\
+                        torrentStatus.upload_rate / 1000, torrentStatus.num_peers,\
+                        torrentStatus.list_seeds)
                 self.Print(infosSTR)
             sleep(.5)
+            now = time()
+            if now-start > 30:
+                self.Print('NO PEERS FOUND')
+                break
             torrentStatus = self.torrentHandle.status()
 
     #
@@ -181,9 +187,10 @@ class TORRENTTHREAD(Thread):
                 infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
                 self.Print(infosSTR)
             else:
-                infosSTR = '%.2f%% (down: %.1f kb/s up: %.1f kB/s peers: %d) %s'\
+                infosSTR = '%.2f%% (down: %.1f kb/s up: %.1f kB/s peers: %d / %d)) %s'\
                         % (torrentStatus.progress * 100, torrentStatus.download_rate / 1000,\
-                        torrentStatus.upload_rate / 1000, torrentStatus.num_peers, state_str[torrentStatus.state])
+                        torrentStatus.upload_rate / 1000, torrentStatus.num_peers,\
+                        torrentStatus.list_seeds, state_str[torrentStatus.state])
                 self.Print(infosSTR)
             sleep(.1)
             torrentStatus = self.torrentHandle.status()

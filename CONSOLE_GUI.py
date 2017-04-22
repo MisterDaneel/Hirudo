@@ -6,12 +6,10 @@ import os
 
 sys.dont_write_bytecode = True
 
-import libs.completer as completer
-
+with open('configuration.json') as configuration_file:
+    configuration = json.load(configuration_file)
 try:
     import libs.t411api as tapi
-    with open('configuration.json') as configuration_file:
-        configuration = json.load(configuration_file)
     search = True
 except:
     search = False
@@ -137,11 +135,14 @@ def main_menu():
                 thread.Stop()
 
         sys.exit(0)
-
    
     # Open torrent file
     if result == 1:
-        torrent_file = completer.raw_path('Open file:')
+        try:
+            import libs.completer as completer
+            torrent_file = completer.raw_path('Open file:')
+        except:
+            torrent_file = raw_input('Open file:')
         download_torrent(torrent_file) 
 
     # Boost ratio
@@ -171,15 +172,14 @@ def main_menu():
 
             response = search_resquest(api)
             if response == 0:
-                break
+                print 'Pas de resultats.'
+            elif len(response['torrents']) == 0:
+                print 'Pas de resultats.'
+            elif isinstance(response['torrents'][0], int):
+                print 'Pas de resultats.'
             else:
-                if len(response) == 0:
-                    print 'Pas de resultats.'
-                elif isinstance(response['torrents'][0], int):
-                    print 'Pas de resultats.'
-                else:
-                    search_response(api, response)
-                break
+                search_response(api, response)
+            break
     return
 
 while(1):

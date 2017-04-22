@@ -6,7 +6,7 @@ import os
 
 sys.dont_write_bytecode = True
 
-API_URL = 'http://api.t411.ai'
+API_URL = 'https://api.t411.ai'
 SEARCH_URL = '/torrents/search/'
 
 def sanitize(value):
