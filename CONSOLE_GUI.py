@@ -9,7 +9,8 @@ sys.dont_write_bytecode = True
 with open('configuration.json') as configuration_file:
     configuration = json.load(configuration_file)
 try:
-    import libs.t411api as tapi
+    import libs.t411api as t411api
+    import libs.torrent9api as t9api
     search = True
 except:
     search = False
@@ -50,28 +51,27 @@ def search_response(api, response):
     torrents=[]
     # Sort result by seeders and by size
     torrents = sorted(
-        response['torrents'], key = lambda torrent: (
-            int(torrent['seeders']),
-            int(torrent['size'])),
-        reverse=True)
-
+        response, key = lambda torrent: (
+            int(torrent['seeders'])),
+            reverse=True)
     # Print results
-    for i, t in enumerate(torrents):
+    for i, torrent in enumerate(torrents):
         try:
-            print '[ %d ] %s (seeders: %s, size: %dmo, id: %s)'\
-                %(i+1, t['name'], t['seeders'], int(t['size'])/1000000, t['id'])
+            print '[ %d ] %s (seeders: %s, size: %dmo)'\
+                %(i+1, torrent['name'], torrent['seeders'], int(torrent['size'])/1000000)
         except:
-            None
+            print '[ %d ] %s (seeders: %s, size: %s)'\
+                %(i+1, torrent['name'], torrent['seeders'], torrent['size'])
     # Choose a result
-    try:
-        result = input('$ ')
-        if result == 0:
-            return
-        elif result <= len(torrents):
-            torrent_file = api.download(int(torrents[result-1]['id']))
-            download_torrent(torrent_file)
-    except:
-        None
+    #try:
+    result = input('$ ')
+    if result == 0:
+        return
+    elif result <= len(torrents):
+        torrent_file = api.download(torrents[result-1])
+        download_torrent(torrent_file)
+    #except:
+    #    None
 
 def search_resquest(api):
     result = create_menu("RECHERCHE",
@@ -88,14 +88,9 @@ def search_resquest(api):
         return 0
 
     if torrent_name and result > 1:
-        params = {
-            'offset': 0,
-            'limit': 5,
-        }
         try:
             season = -1
             while (season < 1) or (season > 100):
-                #print 'Numero de saison entre 1 et 1000'
                 season = int(input('Saison: '))
             episode = -1
             while (episode < 0) or (episode > 100):
@@ -106,27 +101,26 @@ def search_resquest(api):
 
         # TV Show
         if result == 2:
-            params['cid'] = 433
-            params['term[46][0]'] = 936 + episode
-            params['term[47][0]'] = 967 + season
-            params['term[51][0]'] = 1216
-            return api.advanced_search(torrent_name, params)
+            return api.tvshow_search(torrent_name, episode, season)
 
         # Anime
         elif result == 3:
-            params['cid'] = 637
-            params['term[46][0]'] = 936 + int(episode)
-            params['term[47][0]'] = 967 + int(season)
-            return api.advanced_search(torrent_name, params)
+            return api.anime_search(torrent_name, episode, season)
 
     # Global
-    if torrent_name and result == 1:
+    elif torrent_name and result == 1:
         return api.search(torrent_name)
     return 0
 
 def main_menu():
     if search:
-        result = create_menu("MENU", ['Ouvrir un fichier torrent', 'Booster son ratio', 'See Activity', 'Rechercher sur T411'])
+        result = create_menu("MENU",
+            ['Ouvrir un fichier torrent', 
+            'See Activity', 
+            'Rechercher sur T411',
+            'Rechercher sur Torrent9'
+            #'Booster son ratio', 
+        ])
     else:
         result = create_menu("MENU", ['Ouvrir un fichier torrent', 'Booster son ratio', 'See Activity'])
     if result == 0:
@@ -145,12 +139,8 @@ def main_menu():
             torrent_file = raw_input('Open file:')
         download_torrent(torrent_file) 
 
-    # Boost ratio
-    elif result == 2:
-        print 'to do'
-
     # Print activty
-    elif result == 3:
+    elif result == 2:
         print ''
         for torrent_name, thread in active_torrents.iteritems():
             if thread.isAlive():
@@ -159,23 +149,28 @@ def main_menu():
                 print '%s - COMPLETED'%torrent_name
 
     # Search on T411
-    elif (result == 4) and search:
+    elif (result == 3) and search:
         while(1):
             try:
                 print 'Trying to connect to T411...'
-                api = tapi.T411API()
+                api = t411api.T411API()
                 api.connect(configuration["loginT411"], configuration["passwordT411"])
             except Exception as e:
                 print 'Failed to connect to T411: %s'%e
                 break
             print 'Succeded to connect to T411'
-
             response = search_resquest(api)
             if response == 0:
                 print 'Pas de resultats.'
-            elif len(response['torrents']) == 0:
-                print 'Pas de resultats.'
-            elif isinstance(response['torrents'][0], int):
+            else:
+                search_response(api, response)
+            break
+    # Search on Torrent9
+    elif (result == 4) and search:
+        while(1):
+            api = t9api.TORRENT9API()
+            response = search_resquest(api)
+            if response == 0:
                 print 'Pas de resultats.'
             else:
                 search_response(api, response)

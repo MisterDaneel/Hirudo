@@ -122,7 +122,7 @@ class TORRENTTHREAD(Thread):
             'ti': self.info,
             'save_path': self.output,
         })
-        self.torrentHandle.set_download_limit(1)
+        self.torrentHandle.set_download_limit(10000)
         self.torrentHandle.set_upload_limit(self.uploadLimit)
         self.torrentHandle.set_sequential_download(True)
         # New Torrent
@@ -170,12 +170,12 @@ class TORRENTTHREAD(Thread):
                 infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
                 self.Print(infosSTR)
             else:
-                infosSTR = 'finding peers: %d'\
+                infosSTR = 'Checking for peers: %d'\
                         % (torrentStatus.num_peers)
                 self.Print(infosSTR)
             sleep(.5)
             now = time()
-            if now-start > 30:
+            if now-start > 60:
                 self.toStop = True
                 self.PrintStatus = True
                 self.Print('NO PEERS FOUND')
