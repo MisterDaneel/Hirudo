@@ -122,7 +122,7 @@ def main_menu():
             #'Booster son ratio', 
         ])
     else:
-        result = create_menu("MENU", ['Ouvrir un fichier torrent', 'Booster son ratio', 'See Activity'])
+        result = create_menu("MENU", ['Ouvrir un fichier torrent', 'See Activity'])
     if result == 0:
         for torrent_name, thread in active_torrents.iteritems():
             if thread.isAlive():
