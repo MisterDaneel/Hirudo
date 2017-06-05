@@ -59,6 +59,7 @@ def search_response(api, response):
             int(torrent['seeders'])),
         reverse=True)
     # Print results
+    print '[ 0 ] Exit'
     for i, torrent in enumerate(torrents):
         try:
             print '[ %d ] %s (seeders: %s, size: %dmo)'\
@@ -69,7 +70,10 @@ def search_response(api, response):
                 % (i+1, torrent['name'],
                    torrent['seeders'], torrent['size'])
     # Choose a result
-    result = input('$ ')
+    try:
+        result = input('$ ')
+    except:
+        result = 0
     if result == 0:
         return
     elif result <= len(torrents):
@@ -142,7 +146,8 @@ def main_menu():
             torrent_file = completer.raw_path('Open file:')
         except:
             torrent_file = raw_input('Open file:')
-        download_torrent(torrent_file)
+        if os.path.isfile(torrent_file):
+            download_torrent(torrent_file)
 
     # Print activty
     elif result == 2:
