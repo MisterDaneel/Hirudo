@@ -326,7 +326,7 @@ class TKTORRENTGUI(ttk.Frame):
         if activeCount() > MAX_THREADS:
             return
         if name in self.torrentThreadList and\
-        not self.torrentThreadList[name].isAlive():
+                not self.torrentThreadList[name].isAlive():
             torrentFile = self.torrentThreadList[name].torrentFile
             thread = trnt.TORRENTTHREAD(torrentFile)
             self.torrentThreadList.pop(name, None)

@@ -169,14 +169,15 @@ class TORRENTTHREAD(Thread):
         torrentStatus = self.torrentHandle.status()
         start = time()
         while (not self.toStop and (torrentStatus.num_peers < 1) and
-               not self.torrentHandle.is_seed()):
+               not self.torrentHandle.is_seed() and
+               not torrentStatus.paused):
             if (torrentStatus.state == 1):
                 infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100,
                                           state_str[torrentStatus.state])
                 self.Print(infosSTR)
             else:
-                infosSTR = 'Checking for peers: %d'\
-                        % (torrentStatus.num_peers)
+                infosSTR = 'Checking for peers: %d' %\
+                           (torrentStatus.num_peers)
                 self.Print(infosSTR)
             sleep(.5)
             now = time()
@@ -186,6 +187,10 @@ class TORRENTTHREAD(Thread):
                 self.Print('NO PEERS FOUND')
                 break
             torrentStatus = self.torrentHandle.status()
+        if torrentStatus.paused and torrentStatus.error:
+            self.toStop = True
+            self.PrintStatus = True
+            self.Print(torrentStatus.error)
 
     #
     # Downloading
