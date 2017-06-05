@@ -22,24 +22,27 @@ except ImportError:
 
 active_torrents = {}
 
+
 def download_torrent(torrent_file):
     torrent_file = torrent_file.decode('utf8')
     thread = trnt.TORRENTTHREAD(torrent_file)
     thread.SetOutput(configuration["output_folder"])
     if 'leech_passkey' in configuration:
-        thread.SetPasskey(configuration['user_passkey'], configuration['leech_passkey'])
-    active_torrents[thread.GetTorrentName()]= thread
+        thread.SetPasskey(configuration['user_passkey'],
+                          configuration['leech_passkey'])
+    active_torrents[thread.GetTorrentName()] = thread
     thread.start()
+
 
 def create_menu(title, items):
     title = 10*"*" + title + 10*"*"
     heading = len(title)*"*"
-    
+
     while True:
-        print '%s\n%s\n%s'%(heading, title, heading)
+        print '%s\n%s\n%s' % (heading, title, heading)
         print '[ 0 ] Exit'
         for num, item in enumerate(items):
-            print '[ %d ] %s'%(num+1,item)
+            print '[ %d ] %s' % (num+1, item)
         try:
             result = input('$ ')
             if result < len(items)+1:
@@ -47,44 +50,45 @@ def create_menu(title, items):
         except:
             continue
 
+
 def search_response(api, response):
-    torrents=[]
+    torrents = []
     # Sort result by seeders and by size
     torrents = sorted(
-        response, key = lambda torrent: (
+        response, key=lambda torrent: (
             int(torrent['seeders'])),
-            reverse=True)
+        reverse=True)
     # Print results
     for i, torrent in enumerate(torrents):
         try:
             print '[ %d ] %s (seeders: %s, size: %dmo)'\
-                %(i+1, torrent['name'], torrent['seeders'], int(torrent['size'])/1000000)
+                % (i+1, torrent['name'], torrent['seeders'],
+                   int(torrent['size'])/1000000)
         except:
             print '[ %d ] %s (seeders: %s, size: %s)'\
-                %(i+1, torrent['name'], torrent['seeders'], torrent['size'])
+                % (i+1, torrent['name'],
+                   torrent['seeders'], torrent['size'])
     # Choose a result
-    #try:
     result = input('$ ')
     if result == 0:
         return
     elif result <= len(torrents):
         torrent_file = api.download(torrents[result-1])
         download_torrent(torrent_file)
-    #except:
-    #    None
+
 
 def search_resquest(api):
     result = create_menu("RECHERCHE",
-        ['Recherche par mots cles',
-        'Recherche Serie TV',
-        'Recherche Serie Anime'])
+                         ['Recherche par mots cles',
+                          'Recherche Serie TV',
+                          'Recherche Serie Anime'])
 
     if result == 0:
         return 0
 
-    torrent_name = raw_input('Mots cles: ') 
+    torrent_name = raw_input('Mots cles: ')
 
-    if  torrent_name == '':
+    if torrent_name == '':
         return 0
 
     if torrent_name and result > 1:
@@ -112,24 +116,25 @@ def search_resquest(api):
         return api.search(torrent_name)
     return 0
 
+
 def main_menu():
     if search:
         result = create_menu("MENU",
-            ['Ouvrir un fichier torrent', 
-            'See Activity', 
-            'Rechercher sur T411',
-            'Rechercher sur Torrent9'
-            #'Booster son ratio', 
-        ])
+                             ['Ouvrir un fichier torrent',
+                              'See Activity',
+                              'Rechercher sur T411',
+                              'Rechercher sur Torrent9'])
     else:
-        result = create_menu("MENU", ['Ouvrir un fichier torrent', 'See Activity'])
+        result = create_menu("MENU",
+                             ['Ouvrir un fichier torrent',
+                              'See Activity'])
     if result == 0:
         for torrent_name, thread in active_torrents.iteritems():
             if thread.isAlive():
                 thread.Stop()
 
         sys.exit(0)
-   
+
     # Open torrent file
     if result == 1:
         try:
@@ -137,7 +142,7 @@ def main_menu():
             torrent_file = completer.raw_path('Open file:')
         except:
             torrent_file = raw_input('Open file:')
-        download_torrent(torrent_file) 
+        download_torrent(torrent_file)
 
     # Print activty
     elif result == 2:
@@ -146,7 +151,7 @@ def main_menu():
             if thread.isAlive():
                 thread.GetStatus()
             else:
-                print '%s - COMPLETED'%torrent_name
+                print '%s - COMPLETED' % torrent_name
 
     # Search on T411
     elif (result == 3) and search:
@@ -154,9 +159,10 @@ def main_menu():
             try:
                 print 'Trying to connect to T411...'
                 api = t411api.T411API()
-                api.connect(configuration["loginT411"], configuration["passwordT411"])
+                api.connect(configuration["loginT411"],
+                            configuration["passwordT411"])
             except Exception as e:
-                print 'Failed to connect to T411: %s'%e
+                print 'Failed to connect to T411: %s' % e
                 break
             print 'Succeded to connect to T411'
             response = search_resquest(api)

@@ -1,21 +1,23 @@
 #!/usr/bin/python2.7
 
+from threading import Thread, activeCount
+import libtorrent as lt
 from time import sleep, time
 import sys
 import os
 
 sys.dont_write_bytecode = True
 
-from threading import Thread, activeCount
-import libtorrent as lt
+state_str = ['queued', 'checking', 'downloading metadata', 'downloading',
+             'finished', 'seeding', 'allocating', 'checking fastresume']
 
-state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking fastresume']
 
 #
 # TORRENT THREAD
 #
 class TORRENTTHREAD(Thread):
     toStop = False
+
     #
     # Init
     # param: torrent_file: string
@@ -42,13 +44,12 @@ class TORRENTTHREAD(Thread):
     # param: message: string
     #
     def Print(self, message):
-        #print message
         if self.EditGui:
             self.EditGui(self.ItemGui, message)
         if self.PrintStatus:
             print self.info.name() + ' - ' + message
             self.PrintStatus = False
- 
+
     #
     # Get Torrent name
     #
@@ -62,7 +63,7 @@ class TORRENTTHREAD(Thread):
         self.PrintStatus = True
 
     #
-    # Set Gui Function 
+    # Set Gui Function
     # param: EditGui, type: Function
     #
     def SetEditGui(self, EditGui):
@@ -112,10 +113,10 @@ class TORRENTTHREAD(Thread):
     #
     def run(self):
         # New Session
-        #fingerprint = lt.fingerprint("AZ", 3, 0, 5, 0)
-        #settings = lt.session_settings()
-        #settings.user_agent = "Azerus 3.0.5.0"
-        #ses = lt.session(fingerprint)
+        # fingerprint = lt.fingerprint("AZ", 3, 0, 5, 0)
+        # settings = lt.session_settings()
+        # settings.user_agent = "Azerus 3.0.5.0"
+        # ses = lt.session(fingerprint)
         ses = lt.session()
         ses.listen_on(6881, 6891)
         self.torrentHandle = ses.add_torrent({
@@ -128,7 +129,7 @@ class TORRENTTHREAD(Thread):
         # New Torrent
         torrentName = self.torrentHandle.name()
         self.Print('INITIALISATION')
-        # Replace Tracker   
+        # Replace Tracker
         if self.replacePasskey:
             self.trHack()
         # Stop if needed
@@ -155,19 +156,23 @@ class TORRENTTHREAD(Thread):
                 tracker['url'] = self.leechPasskey
             newTorrentTrackers.append(tracker)
         # Peering
-        if len(newTorrentTrackers)>0:
-            if (self.torrentHandle.status().num_peers < 1) and not self.torrentHandle.is_seed():
+        if len(newTorrentTrackers) > 0:
+            if (self.torrentHandle.status().num_peers < 1) and\
+               not self.torrentHandle.is_seed():
                 self.Peering()
             self.torrentHandle.replace_trackers(newTorrentTrackers)
+
     #
     # Get peers list
     #
     def Peering(self):
         torrentStatus = self.torrentHandle.status()
         start = time()
-        while (not self.toStop and (torrentStatus.num_peers < 1) and not self.torrentHandle.is_seed()): 
+        while (not self.toStop and (torrentStatus.num_peers < 1) and
+               not self.torrentHandle.is_seed()):
             if (torrentStatus.state == 1):
-                infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
+                infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100,
+                                          state_str[torrentStatus.state])
                 self.Print(infosSTR)
             else:
                 infosSTR = 'Checking for peers: %d'\
@@ -190,16 +195,21 @@ class TORRENTTHREAD(Thread):
         torrentStatus = self.torrentHandle.status()
         while (not self.toStop and not self.torrentHandle.is_seed()):
             if (torrentStatus.state == 1):
-                infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100, state_str[torrentStatus.state])
+                infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100,
+                                          state_str[torrentStatus.state])
                 self.Print(infosSTR)
             else:
-                infosSTR = '%.2f%% (down: %.1f kb/s up: %.1f kB/s peers: %d)) %s'\
-                        % (torrentStatus.progress * 100, torrentStatus.download_rate / 1000,\
-                        torrentStatus.upload_rate / 1000, torrentStatus.num_peers,\
-                        state_str[torrentStatus.state])
+                infosSTR = '%.2f%% (down: %.1f kb/s up:\
+                           %.1f kB/s peers: %d)) %s' %\
+                           (torrentStatus.progress * 100,
+                            torrentStatus.download_rate / 1000,
+                            torrentStatus.upload_rate / 1000,
+                            torrentStatus.num_peers,
+                            state_str[torrentStatus.state])
                 self.Print(infosSTR)
             sleep(.1)
             torrentStatus = self.torrentHandle.status()
+
     #
     # Stop
     #

@@ -6,7 +6,9 @@ import os
 
 sys.dont_write_bytecode = True
 
+
 class Completer(object):
+
     def _listdir(self, root):
         res = []
         for name in os.listdir(root):
@@ -25,8 +27,8 @@ class Completer(object):
             return self._listdir('.')
         dirname, rest = os.path.split(path)
         tmp = dirname if dirname else '.'
-        res = [os.path.join(dirname, p)
-                for p in self._listdir(tmp) if p.startswith(rest)]
+        res = [os.path.join(dirname, p) for
+               p in self._listdir(tmp) if p.startswith(rest)]
         # more than one match, or single match which does not exist (typo)
         if len(res) > 1 or not os.path.exists(path):
             return res
@@ -42,6 +44,7 @@ class Completer(object):
         if not line:
             return (self._complete_path('.') + [None])[state]
         return (self._complete_path(line) + [None])[state]
+
 
 def raw_path(text):
     readline.set_completer_delims(' \t\n;')

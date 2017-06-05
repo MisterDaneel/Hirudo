@@ -9,8 +9,10 @@ sys.dont_write_bytecode = True
 API_URL = 'https://api.t411.al'
 SEARCH_URL = '/torrents/search/'
 
+
 #
-#Normalizes string, converts to lowercase, removes non-alpha characters, and converts spaces to underscores.
+# Normalizes string, converts to lowercase,
+# removes non-alpha characters, and converts spaces to underscores.
 #
 def sanitize(value):
     from re import sub
@@ -19,10 +21,13 @@ def sanitize(value):
     value = sub('[^\w\s\.-]', '', value.decode('utf-8')).strip().lower()
     return sub('[-_\s]+', '_', value)
 
+
 class T411API:
+
     def __init__(self):
         self.token = None
         self.uid = None
+
     #
     # Connect to the T411 service
     #
@@ -35,18 +40,20 @@ class T411API:
         except Exception as e:
             raise ValueError('Could not connect to API server: %s' % e)
         if r.status_code != 200:
-            raise ValueError('Unexpected HTTP code %d upon connection'
-                               % r.status_code)
+            raise ValueError('Unexpected HTTP code %d upon connection' %
+                             r.status_code)
         try:
             response = r.json()
         except ValueError:
-            raise ValueError('Unexpected non-JSON API response : %s' % r.content)
+            raise ValueError('Unexpected non-JSON API response : %s' %
+                             r.content)
 
         if 'token' not in response.keys():
-            raise ValueError('Unexpected T411 error : %s (%d)'
-                               % (response['error'], response['code']))
+            raise ValueError('Unexpected T411 error : %s (%d)' %
+                             (response['error'], response['code']))
         self.token = response['token']
         self.uid = int(response['uid'])
+
     #
     # Wraps API communication, with token and HTTP error code handling
     #
@@ -56,26 +63,28 @@ class T411API:
         if not params:
             params = {}
         url = API_URL + path
-        headers={'Authorization': self.token}
+        headers = {'Authorization': self.token}
         r = requests.get(url, params=params, headers=headers)
         if r.status_code != 200:
-            raise ValueError('Unexpected HTTP code %d upon connection'
-                               % r.status_code)
+            raise ValueError('Unexpected HTTP code %d upon connection' %
+                             r.status_code)
         return r
+
     #
     # Handle API response and errors
     #
-    def _query(self, path, params=None):  
+    def _query(self, path, params=None):
         r = self._raw_query(path, params)
         try:
             response = r.json()
         except ValueError as e:
-            raise ValueError('Unexpected non-JSON response from T411: %s'
-                               % r.content if r else 'response is None')
+            raise ValueError('Unexpected non-JSON response from T411: %s' %
+                             r.content if r else 'response is None')
         if 'error' in response:
-            raise ValueError('Unexpected T411 error : %s (%d)'
-                               % (response['error'], response['code']))
+            raise ValueError('Unexpected T411 error : %s (%d)' %
+                             (response['error'], response['code']))
         return response
+
     #
     # Download torrent on filesystem
     #
@@ -90,16 +99,18 @@ class T411API:
             raw = self._raw_query('/torrents/download/%s' % torrent_id, {})
             out.write(raw.content)
         return os.path.join(base, filename)
+
     #
     # Search for a torrent, results are unordered
     #
-    def search(self, torrent_name, params = {'offset': 0,}):
+    def search(self, torrent_name, params={'offset': 0, }):
         response = self._query(SEARCH_URL + torrent_name, params)
         if len(response['torrents']) == 0:
             return 0
         elif isinstance(response['torrents'][0], int):
             return 0
         return response['torrents']
+
     #
     # Search for a torrent, TV SHOW only
     #
@@ -126,10 +137,11 @@ class T411API:
         params['term[46][0]'] = 936 + int(episode)
         params['term[47][0]'] = 967 + int(season)
         return self.search(torrent_name, params)
+
     #
     # Get stats about an user
     #
-    def user(self, uid = None):
+    def user(self, uid=None):
         if not uid:
             uid = self.uid
         user = self._query('/users/profile/%d' % uid)
