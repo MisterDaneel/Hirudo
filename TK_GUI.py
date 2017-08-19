@@ -27,7 +27,10 @@ initialDir = '~'
 uploadLimit = 500000
 downloadLimit = 9000000
 
-with open('configuration.json') as configuration_file:
+script_path = os.path.realpath(__file__)
+script_dir = os.path.dirname(script_path)
+configuration_path = os.path.join(script_dir, 'configuration.json')
+with open(configuration_path) as configuration_file:
         configuration = json.load(configuration_file)
 
 

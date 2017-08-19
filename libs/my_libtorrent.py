@@ -204,8 +204,8 @@ class TORRENTTHREAD(Thread):
                                           state_str[torrentStatus.state])
                 self.Print(infosSTR)
             else:
-                infosSTR = '%.2f%% (down: %.1f kb/s up:\
-                           %.1f kB/s peers: %d)) %s' %\
+                infosSTR = ('%.2f%% (down: %.1f kb/s up:' +
+                            '%.1f kB/s peers: %d)) %s') %\
                            (torrentStatus.progress * 100,
                             torrentStatus.download_rate / 1000,
                             torrentStatus.upload_rate / 1000,
