@@ -40,10 +40,10 @@ except:
 class TKTORRENTGUI(ttk.Frame):
     SortDir = True     # descending
 
-    def __init__(self, name='tktorrent'):
+    def __init__(self, name='hirudo'):
         ttk.Frame.__init__(self, name=name)
         self.pack(expand=Y, fill=BOTH)
-        self.master.title('TK TORRENT')
+        self.master.title('HIRUDO')
         self.torrentThreadList = {}
         self.isPopup = False
         if 'number_of_active_torrents' in configuration:

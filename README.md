@@ -1,27 +1,42 @@
-# pytorrentClient
+# HIRUDO
 
 A simple torrent client application
 
+## INSTALL LIBTORRENT
+```
+apt-get install python-libtorrent
+```
 
-Need libtorrent:
+Or execute libtorrent.sh.
 
-   apt-get install python-libtorrent
+On mac os:
 
-   or execute libtorrent.sh
+```
+brew install boost --build-from-source
 
+brew install libtorrent-rasterbar --with-python
+```
 
-To use TK_GUI:
+## EXECUTE
 
-   apt-get install python-tk
+GUI (TK required):
+```python HIRUDO.py```
 
+CONSOLE:
+```python HIRUDO_CONSOLE.py```
 
-To use search engine in CONSOLE_GUI:
+## INSTALL TK
+```
+apt-get install python-tk
+```
 
-   pip install requests
+## Search engine (t411, torrent9) in HIRUDO_CONSOLE:
+```
+pip install requests
 
-   pip install bs4
+pip install bs4
 
-   pip install cfscrape (https://github.com/Anorov/cloudflare-scrape)
-
+pip install cfscrape (https://github.com/Anorov/cloudflare-scrape)
+```
 
 
