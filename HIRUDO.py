@@ -35,9 +35,6 @@ else:
     configuration = {}
 
 
-#
-#
-#
 class BACKUPACTIVETORRENTS():
 
     def __init__(self):
@@ -61,7 +58,7 @@ class BACKUPACTIVETORRENTS():
         backup_string = json.dumps(self.backup_dic)
         backup_b64 = base64.b64encode(backup_string)
         with open(self.backup_file, 'w') as f:
-           f.write(backup_b64) 
+            f.write(backup_b64)
 
     def add_file(self, torrent_name, torrent_file):
         self.backup_dic[torrent_name] = torrent_file
@@ -72,18 +69,15 @@ class BACKUPACTIVETORRENTS():
         self.write_backup()
 
 
-#
-# GUI
-#
 class TKTORRENTGUI(ttk.Frame):
-    SortDir = True     # descending
+    sort_dir = True     # descending
 
     def __init__(self, name='hirudo'):
         ttk.Frame.__init__(self, name=name)
         self.pack(expand=Y, fill=BOTH)
         self.master.title('HIRUDO')
-        self.torrentThreadList = {}
-        self.isPopup = False
+        self.torrent_thread_list = {}
+        self.is_popup = False
         if 'number_of_active_torrents' in configuration:
             self.active_torrents = configuration['number_of_active_torrents']
         else:
@@ -92,7 +86,8 @@ class TKTORRENTGUI(ttk.Frame):
             self.upload_limit = int(configuration['upload_limit'])
         else:
             self.upload_limit = 500000
-        if 'download_limit' in configuration and configuration['download_limit']:
+        if 'download_limit' in configuration and\
+                configuration['download_limit']:
             self.download_limit = configuration['download_limit']
         else:
             self.download_limit = 9000000
@@ -100,76 +95,76 @@ class TKTORRENTGUI(ttk.Frame):
             self.output_folder = configuration['output_folder']
         else:
             self.output_folder = ''
-        self.CreateWidgets()
+        self.create_widgets()
 
         self.backup = BACKUPACTIVETORRENTS()
         for torrent_file in self.backup.load_backup():
-            self.LoadFile(torrent_file)
+            self.load_file(torrent_file)
 
-    #
-    # CreateWidgets
-    #
-    def CreateWidgets(self):
+    def create_file_bar(self, menu):
+        file_bar = Menu(menu)
+        menu.add_cascade(label='File', menu=file_bar)
+        file_bar.add_command(label='Add file', command=self.add_file)
+        file_bar.add_command(label='Add folder', command=self.add_folder)
+        file_bar.add_command(label='Maximum number of active torrents',
+                             command=self.set_number_of_active_torrents)
+        file_bar.add_command(label='Download limit',
+                             command=self.set_download_limit)
+        file_bar.add_command(label='Upload limit',
+                             command=self.set_upload_limit)
+        file_bar.add_command(label='Exit', command=self.exit)
+
+    def create_torrent_bar(self, menu):
+        torrent_bar = Menu(menu)
+        menu.add_cascade(label='Torrent', menu=torrent_bar)
+        torrent_bar.add_command(label='Start', command=self.call_start)
+        torrent_bar.add_command(label='Stop', command=self.call_stop)
+        torrent_bar.add_command(label='Delete', command=self.delete)
+
+    def create_widgets(self):
         # Bar
         menu = Menu(self)
         self.master.config(menu=menu)
         # File bar
-        addBar = Menu(menu)
-        menu.add_cascade(label='File', menu=addBar)
-        addBar.add_command(label='Add File', command=self.AddFile)
-        addBar.add_command(label='Add Folder', command=self.AddFolder)
-        addBar.add_command(label='Maximum Number Of Active Torrents',
-                           command=self.NumberOfActiveTorrents)
-        addBar.add_command(label='Download Limit', command=self.DownloadLimit)
-        addBar.add_command(label='Upload Limit', command=self.UploadLimit)
-        addBar.add_command(label='Exit', command=self.Exit)
+        self.create_file_bar(menu)
         # Torrent bar
-        torrentBar = Menu(menu)
-        menu.add_cascade(label='Torrent', menu=torrentBar)
-        torrentBar.add_command(label='Start', command=self.CallStart)
-        torrentBar.add_command(label='Stop', command=self.CallStop)
-        torrentBar.add_command(label='Delete', command=self.Delete)
+        self.create_torrent_bar(menu)
         # Search bar
-        #  torrentBar = Menu(menu)
-        #  menu.add_cascade(label='Search', menu=torrentBar)
-        #  torrentBar.add_command(label='Keywords', command=self.SearchKeywords)
+        #  torrent_bar = Menu(menu)
+        #  menu.add_cascade(label='Search', menu=torrent_bar)
+        #  torrent_bar.add_command(label='Keywords',
+        #                          command=self.search_keywords)
         # Torrent panel
-        self.CreateTorrentPanel()
+        self.create_torrent_panel()
 
-    #
-    # Events
-    #
-    def RightClick(self, event):
-        if self.isPopup:
+    def right_click(self, event):
+        if self.is_popup:
             self.popupMenu.destroy()
-            self.isPopup = False
+            self.is_popup = False
         else:
             # Popup menu
             self.popupMenu = Menu(self, tearoff=0)
-            self.popupMenu.add_command(label='Start', command=self.CallStart)
-            self.popupMenu.add_command(label='Stop', command=self.CallStop)
-            self.popupMenu.add_command(label='Delete', command=self.Delete)
+            self.popupMenu.add_command(label='Start', command=self.call_start)
+            self.popupMenu.add_command(label='Stop', command=self.call_stop)
+            self.popupMenu.add_command(label='Delete', command=self.delete)
             self.popupMenu.post(event.x_root, event.y_root)
-            self.isPopup = True
+            self.is_popup = True
 
-    def ExitPopup(self, event):
-        if self.isPopup:
+    def exit_popup(self, event):
+        if self.is_popup:
             self.popupMenu.destroy()
-            self.isPopup = False
+            self.is_popup = False
 
-    def SelectAll(self, event):
+    def select_all(self, event):
         for item in self.table.get_children():
             self.table.selection_add(item)
 
-    #
-    # CreateTorrentPanel
-    #
-    def CreateTorrentPanel(self):
+    def create_torrent_panel(self):
         frame = Frame(self)
         frame.pack(side=TOP, fill=BOTH, expand=Y)
         # table
-        self.torrentCols = ('Torrent', 'State')
-        self.table = ttk.Treeview(columns=self.torrentCols, show='headings')
+        self.torrent_cols = ('Torrent', 'State')
+        self.table = ttk.Treeview(columns=self.torrent_cols, show='headings')
         # scrollbars
         ysb = ttk.Scrollbar(orient=VERTICAL, command=self.table.yview)
         xsb = ttk.Scrollbar(orient=HORIZONTAL, command=self.table.xview)
@@ -183,22 +178,19 @@ class TKTORRENTGUI(ttk.Frame):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
         # bind callback
-        self.table.bind('<Double-1>',  self.CallStart)
-        self.table.bind('<Button-3>',  self.RightClick)
-        self.table.bind('<Button-1>',  self.ExitPopup)
-        self.table.bind('<Escape>',    self.ExitPopup)
-        self.table.bind('<Control-a>', self.SelectAll)
+        self.table.bind('<Double-1>',  self.call_start)
+        self.table.bind('<Button-3>',  self.right_click)
+        self.table.bind('<Button-1>',  self.exit_popup)
+        self.table.bind('<Escape>',    self.exit_popup)
+        self.table.bind('<Control-a>', self.select_all)
         # configure column headings
-        for c in self.torrentCols:
+        for c in self.torrent_cols:
             self.table.heading(c, text=c.title(),
                                command=lambda c=c:
-                               self.ColumnSort(c, TKTORRENTGUI.SortDir))
+                               self.column_sort(c, TKTORRENTGUI.sort_dir))
             self.table.column(c, width=Font().measure(c.title()))
 
-    #
-    # ColumnSort
-    #
-    def ColumnSort(self, col, descending=False):
+    def column_sort(self, col, descending=False):
         # grab values
         data = [(self.table.set(child, col), child) for
                 child in self.table.get_children('')]
@@ -207,17 +199,14 @@ class TKTORRENTGUI(ttk.Frame):
         for indx, item in enumerate(data):
             # item[1] = item Identifier
             self.table.move(item[1], '', indx)
-        TKTORRENTGUI.SortDir = not descending
+        TKTORRENTGUI.sort_dir = not descending
 
-    #
-    # LoadFile
-    #
-    def LoadFile(self, torrentFile):
-        thread = trnt.TORRENTTHREAD(torrentFile)
+    def load_file(self, torrent_file):
+        thread = trnt.TORRENTTHREAD(torrent_file)
         name = thread.GetTorrentName()
-        if name not in self.torrentThreadList:
-            self.torrentThreadList[name] = thread
-        self.backup.add_file(name, torrentFile)
+        if name not in self.torrent_thread_list:
+            self.torrent_thread_list[name] = thread
+        self.backup.add_file(name, torrent_file)
         for item in self.table.get_children():
             if self.table.item(item)['text'] == name:
                 return
@@ -225,13 +214,10 @@ class TKTORRENTGUI(ttk.Frame):
         self.table.insert('', 'end', text=name, values=values)
         for idx, val in enumerate(values):
             iwidth = Font().measure(val)
-            if self.table.column(self.torrentCols[idx], 'width') < iwidth:
-                self.table.column(self.torrentCols[idx], width=iwidth)
+            if self.table.column(self.torrent_cols[idx], 'width') < iwidth:
+                self.table.column(self.torrent_cols[idx], width=iwidth)
 
-    #
-    # AddFolder
-    #
-    def AddFolder(self):
+    def add_folder(self):
         options = {}
         options['initialdir'] = initial_dir
         options['mustexist'] = False
@@ -241,24 +227,18 @@ class TKTORRENTGUI(ttk.Frame):
         for file in os.listdir(folder):
             if file.endswith('.torrent'):
                 torrent_file = os.path.join(folder, file)
-                self.LoadFile(torrent_file)
+                self.load_file(torrent_file)
 
-    #
-    # AddFile
-    #
-    def AddFile(self):
+    def add_file(self):
         options = {}
         options['initialdir'] = initial_dir
         options['parent'] = self
         options['filetypes'] = [('Torrent file', '*.torrent')]
         torrent_file = tkFileDialog.askopenfilename(**options)
         if torrent_file.endswith('.torrent'):
-            self.LoadFile(torrent_file)
+            self.load_file(torrent_file)
 
-    #
-    # NumberOfActiveTorrents
-    #
-    def NumberOfActiveTorrents(self):
+    def set_number_of_active_torrents(self):
         options = {}
         options['title'] = 'Number Of Active Torrents'
         options['prompt'] = 'Number Of Active Torrents'
@@ -272,10 +252,7 @@ class TKTORRENTGUI(ttk.Frame):
             json.dump(configuration, configuration_file,
                       indent=4, sort_keys=True)
 
-    #
-    # UploadLimit
-    #
-    def UploadLimit(self):
+    def set_upload_limit(self):
         options = {}
         options['title'] = 'Upload Limit'
         options['prompt'] = 'Upload Limit'
@@ -288,14 +265,12 @@ class TKTORRENTGUI(ttk.Frame):
         with open(configuration_path, 'w') as configuration_file:
             json.dump(configuration, configuration_file,
                       indent=4, sort_keys=True)
-        for name in self.torrentThreadList:
-            if self.torrentThreadList[name].isAlive():
-                self.torrentThreadList[name].SetUploadLimit(self.upload_limit)
+        for name in self.torrent_thread_list:
+            torrent = self.torrent_thread_list[name]
+            if torrent.isAlive():
+                torrent.SetUploadLimit(self.upload_limit)
 
-    #
-    # DownloadLimit
-    #
-    def DownloadLimit(self):
+    def set_download_limit(self):
         options = {}
         options['title'] = 'Download Limit'
         options['prompt'] = 'Download Limit'
@@ -308,13 +283,11 @@ class TKTORRENTGUI(ttk.Frame):
         with open(configuration_path, 'w') as configuration_file:
             json.dump(configuration, configuration_file,
                       indent=4, sort_keys=True)
-        for name in self.torrentThreadList:
-            if self.torrentThreadList[name].isAlive():
-                self.torrentThreadList[name].SetDownloadLimit(self.download_limit)
+        for name in self.torrent_thread_list:
+            torrent = self.torrent_thread_list[name]
+            if torrent.isAlive():
+                torrent.SetDownloadLimit(self.download_limit)
 
-    #
-    # Choose among search results
-    #
     def OnSearchSelection(self, response, api):
         torrents = []
         # Sort result by seeders and by size
@@ -335,8 +308,8 @@ class TKTORRENTGUI(ttk.Frame):
 
         def select(event):
             result = listResults.curselection()
-            torrentFile = api.download(int(torrents[result[0]]['id']))
-            self.LoadFile(torrentFile)
+            torrent_file = api.download(int(torrents[result[0]]['id']))
+            self.load_file(torrent_file)
             frame.destroy()
 
         def clear():
@@ -347,10 +320,7 @@ class TKTORRENTGUI(ttk.Frame):
         listResults.pack()
         btn.pack()
 
-    #
-    # Search Keywords
-    #
-    def SearchKeywords(self):
+    def search_keywords(self):
         options = {}
         options['parent'] = self
         torrent_name = tkSimpleDialog.askstring('Search keywords',
@@ -361,96 +331,76 @@ class TKTORRENTGUI(ttk.Frame):
         response = api.search(torrent_name)
         self.OnSearchSelection(response, api)
 
-    #
-    # Exit
-    #
-    def Exit(self):
+    def exit(self):
         for item in self.table.get_children():
             name = self.table.item(item)['text']
             if not name:
                 continue
-            if name in self.torrentThreadList:
-                if self.torrentThreadList[name].isAlive():
-                    self.torrentThreadList[name].Stop()
-                self.torrentThreadList.pop(name, None)
+            if name in self.torrent_thread_list:
+                if self.torrent_thread_list[name].isAlive():
+                    self.torrent_thread_list[name].Stop()
+                self.torrent_thread_list.pop(name, None)
             self.table.delete(item)
         self.quit()
 
-    #
-    # CallStart
-    #
-    def CallStart(self, event=None):
+    def call_start(self, event=None):
         for item in self.table.selection():
             if item:
-                self.Start(item)
+                self.start(item)
 
-    #
-    # Start
-    #
-    def Start(self, item):
+    def start(self, item):
         name = self.table.item(item)['text'].encode('utf8')
         if not name:
             return
         if activeCount() > self.active_torrents:
             return
-        if name in self.torrentThreadList and\
-                not self.torrentThreadList[name].isAlive():
-            torrentFile = self.torrentThreadList[name].torrentFile
-            thread = trnt.TORRENTTHREAD(torrentFile)
-            self.torrentThreadList.pop(name, None)
-            self.torrentThreadList[name] = thread
-            self.torrentThreadList[name].SetEditGui(self.Edit)
-            self.torrentThreadList[name].SetItem(item)
-            folder = os.path.dirname(os.path.realpath(torrentFile))
-            self.torrentThreadList[name].SetOutput(folder)
-            if 'user_passkey' in configuration and 'leech_passkey' in configuration:
-                self.torrentThreadList[name].SetPasskey(configuration['user_passkey'],
-                                                        configuration['leech_passkey'])
-            self.torrentThreadList[name].SetDownloadLimit(self.download_limit)
-            self.torrentThreadList[name].SetUploadLimit(self.upload_limit)
+        if name in self.torrent_thread_list and\
+                not self.torrent_thread_list[name].isAlive():
+            torrent_file = self.torrent_thread_list[name].torrentFile
+            thread = trnt.TORRENTTHREAD(torrent_file)
+            self.torrent_thread_list.pop(name, None)
+            thread.SetEditGui(self.edit)
+            thread.SetItem(item)
+            folder = os.path.dirname(os.path.realpath(torrent_file))
+            thread.SetOutput(folder)
+            if 'user_passkey' in configuration and\
+                    'leech_passkey' in configuration:
+                thread.SetPasskey(configuration['user_passkey'],
+                                  configuration['leech_passkey'])
+            thread.SetDownloadLimit(self.download_limit)
+            thread.SetUploadLimit(self.upload_limit)
             if self.output_folder:
-                self.torrentThreadList[name].SetOutput(self.output_folder)
-            self.torrentThreadList[name].start()
+                thread.SetOutput(self.output_folder)
+            thread.start()
+            self.torrent_thread_list[name] = thread
 
-    #
-    # CallStop
-    #
-    def CallStop(self):
+    def call_stop(self):
         for item in self.table.selection():
             if item:
-                self.Stop(item)
+                self.stop(item)
 
-    #
-    # Stop
-    #
-    def Stop(self, item):
+    def stop(self, item):
         name = self.table.item(item)['text']
         if not name:
             return
-        if name in self.torrentThreadList:
-            if self.torrentThreadList[name].isAlive():
-                self.torrentThreadList[name].Stop()
+        if name in self.torrent_thread_list:
+            if self.torrent_thread_list[name].isAlive():
+                self.torrent_thread_list[name].Stop()
 
-    #
-    # Edit
-    #
-    def Edit(self, item, value):
+    def edit(self, item, value):
         torrentName = self.table.item(item)['text'].replace('.torrent', '')
         self.table.item(item, values=(torrentName, value))
 
-    #
-    # Delete
-    #
-    def Delete(self):
+    def delete(self):
         for item in self.table.selection():
             name = self.table.item(item)['text']
             if not name:
                 return
-            if name in self.torrentThreadList:
-                if self.torrentThreadList[name].isAlive():
-                    self.torrentThreadList[name].Stop()
-                os.remove(self.torrentThreadList[name].torrentFile)
-                self.torrentThreadList.pop(name, None)
+            if name in self.torrent_thread_list:
+                if self.torrent_thread_list[name].isAlive():
+                    self.torrent_thread_list[name].Stop()
+                os.remove(self.torrent_thread_list[name].torrentFile)
+                self.torrent_thread_list.pop(name, None)
             self.table.delete(item)
             self.backup.pop_file(name)
 
