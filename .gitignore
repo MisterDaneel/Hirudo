@@ -1,4 +1,5 @@
 *~
+*.back
 *.pyc
 *.swp
 *.torrent

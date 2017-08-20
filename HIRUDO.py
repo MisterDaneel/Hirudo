@@ -1,5 +1,6 @@
 from threading import Thread, activeCount
 from time import sleep
+import base64
 import json
 import sys
 import os
@@ -22,16 +23,53 @@ except ImportError:
 #
 # CONFIG
 #
-initialDir = '~'
+initial_dir = '~'
 
 script_path = os.path.realpath(__file__)
 script_dir = os.path.dirname(script_path)
 configuration_path = os.path.join(script_dir, 'configuration.json')
-try:
+if os.path.isfile(configuration_path):
     with open(configuration_path) as configuration_file:
         configuration = json.load(configuration_file)
-except:
+else:
     configuration = {}
+
+
+#
+#
+#
+class BACKUPACTIVETORRENTS():
+
+    def __init__(self):
+        self.backup_dic = {}
+        self.backup_file = os.path.join(script_dir, '.back')
+
+    def load_backup(self):
+        if not os.path.isfile(self.backup_file):
+            return {}
+        with open(self.backup_file, 'r') as f:
+            backup_b64 = f.read()
+        backup_string = base64.b64decode(backup_b64)
+        self.backup_dic = json.loads(backup_string)
+        files = []
+        for _, torrent_file in self.backup_dic.iteritems():
+            if os.path.isfile(torrent_file):
+                files.append(torrent_file)
+        return files
+
+    def write_backup(self):
+        backup_string = json.dumps(self.backup_dic)
+        backup_b64 = base64.b64encode(backup_string)
+        with open(self.backup_file, 'w') as f:
+           f.write(backup_b64) 
+
+    def add_file(self, torrent_name, torrent_file):
+        self.backup_dic[torrent_name] = torrent_file
+        self.write_backup()
+
+    def pop_file(self, torrent_name):
+        self.backup_dic.pop(torrent_name, None)
+        self.write_backup()
 
 
 #
@@ -50,15 +88,23 @@ class TKTORRENTGUI(ttk.Frame):
             self.active_torrents = configuration['number_of_active_torrents']
         else:
             self.active_torrents = 5
-        if 'upload_limit' in configuration:
-            self.upload_limit = configuration['upload_limit']
+        if 'upload_limit' in configuration and configuration['upload_limit']:
+            self.upload_limit = int(configuration['upload_limit'])
         else:
             self.upload_limit = 500000
-        if 'download_limit' in configuration:
+        if 'download_limit' in configuration and configuration['download_limit']:
             self.download_limit = configuration['download_limit']
         else:
             self.download_limit = 9000000
+        if 'output_folder' in configuration:
+            self.output_folder = configuration['output_folder']
+        else:
+            self.output_folder = ''
         self.CreateWidgets()
+
+        self.backup = BACKUPACTIVETORRENTS()
+        for torrent_file in self.backup.load_backup():
+            self.LoadFile(torrent_file)
 
     #
     # CreateWidgets
@@ -171,6 +217,7 @@ class TKTORRENTGUI(ttk.Frame):
         name = thread.GetTorrentName()
         if name not in self.torrentThreadList:
             self.torrentThreadList[name] = thread
+        self.backup.add_file(name, torrentFile)
         for item in self.table.get_children():
             if self.table.item(item)['text'] == name:
                 return
@@ -186,30 +233,27 @@ class TKTORRENTGUI(ttk.Frame):
     #
     def AddFolder(self):
         options = {}
-        options['initialdir'] = initialDir
+        options['initialdir'] = initial_dir
         options['mustexist'] = False
         options['parent'] = self
         options['title'] = 'DownDirectory'
         folder = tkFileDialog.askdirectory(**options)
         for file in os.listdir(folder):
             if file.endswith('.torrent'):
-                torrentFile = os.path.join(folder, file)
-                self.LoadFile(torrentFile)
+                torrent_file = os.path.join(folder, file)
+                self.LoadFile(torrent_file)
 
     #
     # AddFile
     #
     def AddFile(self):
         options = {}
-        options['initialdir'] = initialDir
+        options['initialdir'] = initial_dir
         options['parent'] = self
         options['filetypes'] = [('Torrent file', '*.torrent')]
-        file = tkFileDialog.askopenfilename(**options)
-        folder = os.path.dirname(file)
-        file = os.path.basename(file)
-        if file.endswith('.torrent'):
-            torrentFile = os.path.join(folder, file)
-            self.LoadFile(torrentFile)
+        torrent_file = tkFileDialog.askopenfilename(**options)
+        if torrent_file.endswith('.torrent'):
+            self.LoadFile(torrent_file)
 
     #
     # NumberOfActiveTorrents
@@ -347,7 +391,7 @@ class TKTORRENTGUI(ttk.Frame):
         name = self.table.item(item)['text'].encode('utf8')
         if not name:
             return
-        if activeCount() > MAX_THREADS:
+        if activeCount() > self.active_torrents:
             return
         if name in self.torrentThreadList and\
                 not self.torrentThreadList[name].isAlive():
@@ -364,6 +408,8 @@ class TKTORRENTGUI(ttk.Frame):
                                                         configuration['leech_passkey'])
             self.torrentThreadList[name].SetDownloadLimit(self.download_limit)
             self.torrentThreadList[name].SetUploadLimit(self.upload_limit)
+            if self.output_folder:
+                self.torrentThreadList[name].SetOutput(self.output_folder)
             self.torrentThreadList[name].start()
 
     #
@@ -406,6 +452,7 @@ class TKTORRENTGUI(ttk.Frame):
                 os.remove(self.torrentThreadList[name].torrentFile)
                 self.torrentThreadList.pop(name, None)
             self.table.delete(item)
+            self.backup.pop_file(name)
 
 
 # Hide hidden elements
