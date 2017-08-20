@@ -22,16 +22,16 @@ except ImportError:
 #
 # CONFIG
 #
-MAX_THREADS = 5
 initialDir = '~'
-uploadLimit = 500000
-downloadLimit = 9000000
 
 script_path = os.path.realpath(__file__)
 script_dir = os.path.dirname(script_path)
 configuration_path = os.path.join(script_dir, 'configuration.json')
-with open(configuration_path) as configuration_file:
+try:
+    with open(configuration_path) as configuration_file:
         configuration = json.load(configuration_file)
+except:
+    configuration = {}
 
 
 #
@@ -46,6 +46,18 @@ class TKTORRENTGUI(ttk.Frame):
         self.master.title('TK TORRENT')
         self.torrentThreadList = {}
         self.isPopup = False
+        if 'number_of_active_torrents' in configuration:
+            self.active_torrents = configuration['number_of_active_torrents']
+        else:
+            self.active_torrents = 5
+        if 'upload_limit' in configuration:
+            self.upload_limit = configuration['upload_limit']
+        else:
+            self.upload_limit = 500000
+        if 'download_limit' in configuration:
+            self.download_limit = configuration['download_limit']
+        else:
+            self.download_limit = 9000000
         self.CreateWidgets()
 
     #
@@ -60,7 +72,7 @@ class TKTORRENTGUI(ttk.Frame):
         menu.add_cascade(label='File', menu=addBar)
         addBar.add_command(label='Add File', command=self.AddFile)
         addBar.add_command(label='Add Folder', command=self.AddFolder)
-        addBar.add_command(label='Number Of Active Torrents',
+        addBar.add_command(label='Maximum Number Of Active Torrents',
                            command=self.NumberOfActiveTorrents)
         addBar.add_command(label='Download Limit', command=self.DownloadLimit)
         addBar.add_command(label='Upload Limit', command=self.UploadLimit)
@@ -72,9 +84,9 @@ class TKTORRENTGUI(ttk.Frame):
         torrentBar.add_command(label='Stop', command=self.CallStop)
         torrentBar.add_command(label='Delete', command=self.Delete)
         # Search bar
-        torrentBar = Menu(menu)
-        menu.add_cascade(label='Search', menu=torrentBar)
-        torrentBar.add_command(label='Keywords', command=self.SearchKeywords)
+        #  torrentBar = Menu(menu)
+        #  menu.add_cascade(label='Search', menu=torrentBar)
+        #  torrentBar.add_command(label='Keywords', command=self.SearchKeywords)
         # Torrent panel
         self.CreateTorrentPanel()
 
@@ -203,49 +215,58 @@ class TKTORRENTGUI(ttk.Frame):
     # NumberOfActiveTorrents
     #
     def NumberOfActiveTorrents(self):
-        global MAX_THREADS
         options = {}
         options['title'] = 'Number Of Active Torrents'
         options['prompt'] = 'Number Of Active Torrents'
-        options['initialvalue'] = MAX_THREADS
+        options['initialvalue'] = self.active_torrents
         options['parent'] = self
         options['minvalue'] = 0
         options['maxvalue'] = 50
-        MAX_THREADS = tkSimpleDialog.askinteger(**options)
+        self.active_torrents = tkSimpleDialog.askinteger(**options)
+        configuration['number_of_active_torrents'] = self.active_torrents
+        with open(configuration_path, 'w') as configuration_file:
+            json.dump(configuration, configuration_file,
+                      indent=4, sort_keys=True)
 
     #
     # UploadLimit
     #
     def UploadLimit(self):
-        global uploadLimit
         options = {}
         options['title'] = 'Upload Limit'
         options['prompt'] = 'Upload Limit'
-        options['initialvalue'] = uploadLimit
+        options['initialvalue'] = self.upload_limit
         options['parent'] = self
         options['minvalue'] = 0
         options['maxvalue'] = 100000000000
-        uploadLimit = tkSimpleDialog.askinteger(**options)
+        self.upload_limit = tkSimpleDialog.askinteger(**options)
+        configuration['upload_limit'] = self.upload_limit
+        with open(configuration_path, 'w') as configuration_file:
+            json.dump(configuration, configuration_file,
+                      indent=4, sort_keys=True)
         for name in self.torrentThreadList:
             if self.torrentThreadList[name].isAlive():
-                self.torrentThreadList[name].SetDownloadLimit(downloadLimit)
+                self.torrentThreadList[name].SetUploadLimit(self.upload_limit)
 
     #
     # DownloadLimit
     #
     def DownloadLimit(self):
-        global downloadLimit
         options = {}
         options['title'] = 'Download Limit'
         options['prompt'] = 'Download Limit'
-        options['initialvalue'] = downloadLimit
+        options['initialvalue'] = self.download_limit
         options['parent'] = self
         options['minvalue'] = 0
         options['maxvalue'] = 100000000000
-        downloadLimit = tkSimpleDialog.askinteger(**options)
+        self.download_limit = tkSimpleDialog.askinteger(**options)
+        configuration['download_limit'] = self.download_limit
+        with open(configuration_path, 'w') as configuration_file:
+            json.dump(configuration, configuration_file,
+                      indent=4, sort_keys=True)
         for name in self.torrentThreadList:
             if self.torrentThreadList[name].isAlive():
-                self.torrentThreadList[name].SetDownloadLimit(downloadLimit)
+                self.torrentThreadList[name].SetDownloadLimit(self.download_limit)
 
     #
     # Choose among search results
@@ -338,10 +359,11 @@ class TKTORRENTGUI(ttk.Frame):
             self.torrentThreadList[name].SetItem(item)
             folder = os.path.dirname(os.path.realpath(torrentFile))
             self.torrentThreadList[name].SetOutput(folder)
-            self.torrentThreadList[name].SetPasskey(configuration['user_passkey'],
-                                                    configuration['leech_passkey'])
-            self.torrentThreadList[name].SetDownloadLimit(downloadLimit)
-            self.torrentThreadList[name].SetUploadLimit(uploadLimit)
+            if 'user_passkey' in configuration and 'leech_passkey' in configuration:
+                self.torrentThreadList[name].SetPasskey(configuration['user_passkey'],
+                                                        configuration['leech_passkey'])
+            self.torrentThreadList[name].SetDownloadLimit(self.download_limit)
+            self.torrentThreadList[name].SetUploadLimit(self.upload_limit)
             self.torrentThreadList[name].start()
 
     #
