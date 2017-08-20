@@ -129,11 +129,6 @@ class TKTORRENTGUI(ttk.Frame):
         self.create_file_bar(menu)
         # Torrent bar
         self.create_torrent_bar(menu)
-        # Search bar
-        #  torrent_bar = Menu(menu)
-        #  menu.add_cascade(label='Search', menu=torrent_bar)
-        #  torrent_bar.add_command(label='Keywords',
-        #                          command=self.search_keywords)
         # Torrent panel
         self.create_torrent_panel()
 
@@ -287,49 +282,6 @@ class TKTORRENTGUI(ttk.Frame):
             torrent = self.torrent_thread_list[name]
             if torrent.isAlive():
                 torrent.SetDownloadLimit(self.download_limit)
-
-    def OnSearchSelection(self, response, api):
-        torrents = []
-        # Sort result by seeders and by size
-        torrents = sorted(
-            response['torrents'], key=lambda torrent: (
-                int(torrent['seeders']),
-                int(torrent['size'])),
-            reverse=True)
-        # Print result
-        frame = Frame(self)
-        frame.pack()
-        listResults = Listbox(frame)
-        # Print results
-        for i, t in enumerate(torrents):
-            listResults.insert(i, '%s (seeders: %s, size: %dmo, id: %s)' %
-                               (t['name'], t['seeders'],
-                                int(t['size'])/1000000, t['id']))
-
-        def select(event):
-            result = listResults.curselection()
-            torrent_file = api.download(int(torrents[result[0]]['id']))
-            self.load_file(torrent_file)
-            frame.destroy()
-
-        def clear():
-            frame.destroy()
-        btn = Button(frame, text='Cancel', command=clear)
-        listResults.bind('<Double-Button-1>', select)
-        listResults.bind('<Enter>', select)
-        listResults.pack()
-        btn.pack()
-
-    def search_keywords(self):
-        options = {}
-        options['parent'] = self
-        torrent_name = tkSimpleDialog.askstring('Search keywords',
-                                                'Example: Mad Max 2015',
-                                                **options)
-        api = tapi.T411API()
-        api.connect(configuration["loginT411"], configuration["passwordT411"])
-        response = api.search(torrent_name)
-        self.OnSearchSelection(response, api)
 
     def exit(self):
         for item in self.table.get_children():
