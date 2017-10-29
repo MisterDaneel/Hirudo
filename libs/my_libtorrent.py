@@ -132,12 +132,10 @@ class TORRENTTHREAD(Thread):
         # Replace Tracker
         if self.replacePasskey:
             self.trHack()
-        # Stop if needed
-        if self.toStop:
-            return
         # Downloading
         if(not self.torrentHandle.is_seed()):
             self.Downloading()
+        del ses
         # Stop if needed
         if self.toStop:
             return
@@ -174,18 +172,17 @@ class TORRENTTHREAD(Thread):
             if (torrentStatus.state == 1):
                 infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100,
                                           state_str[torrentStatus.state])
-                self.Print(infosSTR)
             else:
                 infosSTR = 'Checking for peers: %d' %\
                            (torrentStatus.num_peers)
-                self.Print(infosSTR)
-            sleep(.5)
             now = time()
             if now-start > 60:
                 self.toStop = True
                 self.PrintStatus = True
-                self.Print('NO PEERS FOUND')
+                infoSTR = 'NO PEERS FOUND'
                 break
+            self.Print(infosSTR)
+            sleep(.5)
             torrentStatus = self.torrentHandle.status()
         if torrentStatus.paused and torrentStatus.error:
             self.toStop = True
@@ -196,13 +193,11 @@ class TORRENTTHREAD(Thread):
     # Downloading
     #
     def Downloading(self):
-        self.torrentHandle.set_download_limit(self.downloadLimit)
         torrentStatus = self.torrentHandle.status()
         while (not self.toStop and not self.torrentHandle.is_seed()):
             if (torrentStatus.state == 1):
                 infosSTR = '%.2f%% %s' % (torrentStatus.progress * 100,
                                           state_str[torrentStatus.state])
-                self.Print(infosSTR)
             else:
                 infosSTR = ('%.2f%% (down: %.1f kb/s up:' +
                             '%.1f kB/s peers: %d)) %s') %\
@@ -211,9 +206,10 @@ class TORRENTTHREAD(Thread):
                             torrentStatus.upload_rate / 1000,
                             torrentStatus.num_peers,
                             state_str[torrentStatus.state])
-                self.Print(infosSTR)
+            self.Print(infosSTR)
             sleep(.1)
             torrentStatus = self.torrentHandle.status()
+            self.torrentHandle.set_download_limit(self.downloadLimit)
 
     #
     # Stop
