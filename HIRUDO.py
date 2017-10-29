@@ -11,6 +11,10 @@ import tkSimpleDialog
 import tkFileDialog
 import ttk
 
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+import threading
+
 import libs.t411api as tapi
 
 sys.dont_write_bytecode = True
@@ -34,6 +38,16 @@ if os.path.isfile(configuration_path):
 else:
     configuration = {}
 
+class DIRECTORYEVENTHANDLER(FileSystemEventHandler):
+    def __init__(self, observer, filename, load_file):
+        self.observer = observer
+        self.filename = filename
+        self.load_file = load_file
+
+    def on_created(self, event):
+        if not event.is_directory and event.src_path.endswith(self.filename):
+            self.load_file(event.src_path)
+            self.observer.stop()
 
 class BACKUPACTIVETORRENTS():
 
@@ -100,6 +114,24 @@ class TKTORRENTGUI(ttk.Frame):
         self.backup = BACKUPACTIVETORRENTS()
         for torrent_file in self.backup.load_backup():
             self.load_file(torrent_file)
+        threading.Thread(target=self.watch_directory, args=()).start()
+
+    def watch_directory(self, path=None):
+        path = "/home/user/Downloads"
+        if not path:
+            return
+
+        filename = ".torrent"
+
+        observer = Observer()
+
+        event_handler = DIRECTORYEVENTHANDLER(observer, filename, self.load_file)
+
+        observer.schedule(event_handler, path, recursive=False)
+        observer.start()
+        observer.join()
+
+        return 0
 
     def create_file_bar(self, menu):
         file_bar = Menu(menu)

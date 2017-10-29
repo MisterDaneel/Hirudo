@@ -30,6 +30,11 @@ CONSOLE:
 apt-get install python-tk
 ```
 
+## INSTALL WATCHDOG
+```
+pip install watchdog
+```
+
 ## Search engine (t411, torrent9) in HIRUDO_CONSOLE:
 ```
 pip install requests
@@ -38,5 +43,3 @@ pip install bs4
 
 pip install cfscrape (https://github.com/Anorov/cloudflare-scrape)
 ```
-
-
