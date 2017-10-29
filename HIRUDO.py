@@ -1,4 +1,4 @@
-from threading import Thread, activeCount
+from threading import Thread
 from time import sleep
 import base64
 import json
@@ -38,6 +38,11 @@ if os.path.isfile(configuration_path):
 else:
     configuration = {}
 
+def dump_configuration(configuration):
+    with open(configuration_path, 'w') as configuration_file:
+        json.dump(configuration, configuration_file,
+                  indent=4, sort_keys=True)
+
 class DIRECTORYEVENTHANDLER(FileSystemEventHandler):
     def __init__(self, observer, filename, load_file):
         self.observer = observer
@@ -47,7 +52,6 @@ class DIRECTORYEVENTHANDLER(FileSystemEventHandler):
     def on_created(self, event):
         if not event.is_directory and event.src_path.endswith(self.filename):
             self.load_file(event.src_path)
-            self.observer.stop()
 
 class BACKUPACTIVETORRENTS():
 
@@ -94,6 +98,8 @@ class TKTORRENTGUI(ttk.Frame):
         self.is_popup = False
         if 'number_of_active_torrents' in configuration:
             self.active_torrents = configuration['number_of_active_torrents']
+            if self.active_torrents == None:
+                self.active_torrents = 5
         else:
             self.active_torrents = 5
         if 'upload_limit' in configuration and configuration['upload_limit']:
@@ -109,35 +115,40 @@ class TKTORRENTGUI(ttk.Frame):
             self.output_folder = configuration['output_folder']
         else:
             self.output_folder = ''
+        if 'auto_start' in configuration:
+            self.auto_start = configuration['auto_start']
+        else:
+            self.auto_start = False
+        if 'directory_to_watch' in configuration:
+            Thread(target=self.watch_directory,
+                   args=(configuration['directory_to_watch'], )).start()
         self.create_widgets()
 
         self.backup = BACKUPACTIVETORRENTS()
         for torrent_file in self.backup.load_backup():
             self.load_file(torrent_file)
-        threading.Thread(target=self.watch_directory, args=()).start()
 
     def watch_directory(self, path=None):
-        path = "/home/user/Downloads"
         if not path:
             return
-
         filename = ".torrent"
-
         observer = Observer()
-
         event_handler = DIRECTORYEVENTHANDLER(observer, filename, self.load_file)
-
         observer.schedule(event_handler, path, recursive=False)
         observer.start()
         observer.join()
-
-        return 0
 
     def create_file_bar(self, menu):
         file_bar = Menu(menu)
         menu.add_cascade(label='File', menu=file_bar)
         file_bar.add_command(label='Add file', command=self.add_file)
         file_bar.add_command(label='Add folder', command=self.add_folder)
+        file_bar.add_command(label='Add directory to watch', command=self.add_directory_to_watch)
+        if self.auto_start:
+            label = 'Auto start OFF'
+        else:
+            label = 'Auto start ON'
+        file_bar.add_command(label=label, command=lambda: self.set_auto_start(file_bar))
         file_bar.add_command(label='Maximum number of active torrents',
                              command=self.set_number_of_active_torrents)
         file_bar.add_command(label='Download limit',
@@ -238,11 +249,15 @@ class TKTORRENTGUI(ttk.Frame):
             if self.table.item(item)['text'] == name:
                 return
         values = (name, 'NEW')
-        self.table.insert('', 'end', text=name, values=values)
+        item = self.table.insert('', 'end', text=name, values=values)
+
         for idx, val in enumerate(values):
             iwidth = Font().measure(val)
             if self.table.column(self.torrent_cols[idx], 'width') < iwidth:
                 self.table.column(self.torrent_cols[idx], width=iwidth)
+
+        if self.auto_start:
+            self.start(item)
 
     def add_folder(self):
         options = {}
@@ -256,6 +271,18 @@ class TKTORRENTGUI(ttk.Frame):
                 torrent_file = os.path.join(folder, file)
                 self.load_file(torrent_file)
 
+    def add_directory_to_watch(self):
+        options = {}
+        options['initialdir'] = initial_dir
+        options['mustexist'] = False
+        options['parent'] = self
+        options['title'] = 'DownDirectory'
+        directory_to_watch = tkFileDialog.askdirectory(**options)
+        threading.Thread(target=self.watch_directory,
+                         args=(directory_to_watch, )).start()
+        configuration['directory_to_watch'] = directory_to_watch
+        dump_configuration(configuration)
+
     def add_file(self):
         options = {}
         options['initialdir'] = initial_dir
@@ -264,6 +291,17 @@ class TKTORRENTGUI(ttk.Frame):
         torrent_file = tkFileDialog.askopenfilename(**options)
         if torrent_file.endswith('.torrent'):
             self.load_file(torrent_file)
+
+    def set_auto_start(self, file_bar):
+        if self.auto_start:
+            self.auto_start = False
+            label = 'Auto start ON'
+        else:
+            self.auto_start = True
+            label = 'Auto start OFF'
+        file_bar.entryconfigure(4, label=label)
+        configuration['auto_start'] = self.auto_start
+        dump_configuration(configuration)
 
     def set_number_of_active_torrents(self):
         options = {}
@@ -275,9 +313,7 @@ class TKTORRENTGUI(ttk.Frame):
         options['maxvalue'] = 50
         self.active_torrents = tkSimpleDialog.askinteger(**options)
         configuration['number_of_active_torrents'] = self.active_torrents
-        with open(configuration_path, 'w') as configuration_file:
-            json.dump(configuration, configuration_file,
-                      indent=4, sort_keys=True)
+        dump_configuration(configuration)
 
     def set_upload_limit(self):
         options = {}
@@ -289,9 +325,7 @@ class TKTORRENTGUI(ttk.Frame):
         options['maxvalue'] = 100000000000
         self.upload_limit = tkSimpleDialog.askinteger(**options)
         configuration['upload_limit'] = self.upload_limit
-        with open(configuration_path, 'w') as configuration_file:
-            json.dump(configuration, configuration_file,
-                      indent=4, sort_keys=True)
+        dump_configuration(configuration)
         for name in self.torrent_thread_list:
             torrent = self.torrent_thread_list[name]
             if torrent.isAlive():
@@ -307,9 +341,7 @@ class TKTORRENTGUI(ttk.Frame):
         options['maxvalue'] = 100000000000
         self.download_limit = tkSimpleDialog.askinteger(**options)
         configuration['download_limit'] = self.download_limit
-        with open(configuration_path, 'w') as configuration_file:
-            json.dump(configuration, configuration_file,
-                      indent=4, sort_keys=True)
+        dump_configuration(configuration)
         for name in self.torrent_thread_list:
             torrent = self.torrent_thread_list[name]
             if torrent.isAlive():
@@ -336,8 +368,13 @@ class TKTORRENTGUI(ttk.Frame):
         name = self.table.item(item)['text'].encode('utf8')
         if not name:
             return
-        if activeCount() > self.active_torrents:
+        activeCount = 0
+        for torrent in self.torrent_thread_list:
+            if self.torrent_thread_list[torrent].isAlive():
+                activeCount += 1
+        if activeCount > self.active_torrents:
             return
+
         if name in self.torrent_thread_list and\
                 not self.torrent_thread_list[name].isAlive():
             torrent_file = self.torrent_thread_list[name].torrentFile
